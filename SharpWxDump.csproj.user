@@ -4,4 +4,7 @@
     <StartArguments>
     </StartArguments>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <StartArguments>D:\Download\Weixin\WeChat Files</StartArguments>
+  </PropertyGroup>
 </Project>

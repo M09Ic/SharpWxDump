@@ -7,18 +7,18 @@ using System.Text;
 using System.IO.Compression;
 using System.Linq;
 
-namespace WeChatGetKey
+namespace SharpWechatDecrypt
 {
 	internal class Program
 	{
-		private static void Main(string[] args)
+		public static void Main(string[] args)
 		{
             try
             {
                 if (args.Length == 0)
                 {
                     ReadTest();
-                    string[] wxpaths = FindWx();
+                    string[] wxpaths = FindWx(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "WeChat Files"));
                     if (wxpaths.Length == 0)
                     {
 						Console.WriteLine("[-] not default wechat documents");
@@ -31,8 +31,8 @@ namespace WeChatGetKey
                 }
                 else
                 {
-                    Program.PackageWx(args[0]);
-                }
+					Program.PackageWx(@args[0]);
+				}
 
             }
             catch (Exception ex)
@@ -124,18 +124,19 @@ namespace WeChatGetKey
 			}
 		}
 
-		private static string[] FindWx()
+		private static string[] FindWx(string path)
         {
-			string wxdoc = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "WeChat Files");
+			string wxdoc = path;
 			List<string> wxids = new List<string>();
 
-			if (!File.Exists(wxdoc))
+			if (!Directory.Exists(wxdoc))
 			{
 				return wxids.ToArray();
             }
 
-			DirectoryInfo theFolder = new DirectoryInfo(wxdoc);
-			foreach (FileInfo file in theFolder.GetFiles())
+			DirectoryInfo wxfloder = new DirectoryInfo(wxdoc);
+			Console.WriteLine(wxfloder.GetFiles());
+			foreach (FileInfo file in wxfloder.GetFiles())
             {
 				if (file.Name.StartsWith("wxid")) {
 					wxids.Add(file.FullName);
@@ -145,9 +146,9 @@ namespace WeChatGetKey
         }
 		private static void PackageWx(string path)
 		{
-			if (!File.Exists(path))
+			if (!Directory.Exists(path))
             {
-				Console.WriteLine(path + "not exists");
+				Console.WriteLine(path + " not exists");
 				return;
             }
 			string despath = @"C:/Windows/temp/";
